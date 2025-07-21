@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Name Tracing Generator</title>
+  <style>
+    @font-face {
+      font-family: 'TracingFont';
+      src: url('') format('truetype');
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background-color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+    }
+
+    .page-container {
+      width: 8.3in;
+      height: 5.8in;
+      background-color: white;
+      border: 2px solid #333;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      transform: scale(0.8);
+      transform-origin: top center;
+      margin-bottom: 20px;
+      position: relative;
+    }
+
+    .margin-indicator {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1in;
+      border-bottom: 1px dashed #ddd;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 11px;
+      color: #999;
+    }
+
+    .no-print {
+      max-width: 800px;
+      margin: 0 auto 20px auto;
+      text-align: center;
+      padding: 15px;
+    }
+
+    .all-controls {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+      font-size: 14px;
+    }
+
+    input[type="text"] {
+      padding: 8px;
+      font-size: 16px;
+      width: 300px;
+      max-width: 100%;
+      box-sizing: border-box;
+      border: 2px solid #ccc;
+      border-radius: 4px;
+      background-color: rgba(255, 255, 255, 0.9);
+    }
+
+    input[type="number"] {
+      padding: 8px;
+      font-size: 16px;
+      width: 80px;
+      box-sizing: border-box;
+      border: 2px solid #ccc;
+      border-radius: 4px;
+    }
+
+    button {
+      margin-top: 20px;
+      padding: 12px 24px;
+      font-size: 16px;
+      cursor: pointer;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+    }
+
+    button:hover {
+      background-color: #45a049;
+    }
+
+    .output {
+      padding: 1in 0.5in 0.5in 0.5in;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .trace-wrapper {
+      position: relative;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      min-height: 60px; /* Minimum height for each line */
+    }
+
+    .trace-line {
+      font-family: 'TracingFont', sans-serif;
+      font-size: 70px;
+      position: relative;
+      white-space: nowrap;
+      width: 100%;
+      text-align: center;
+      pointer-events: none;
+      box-sizing: border-box;
+      line-height: 1;
+    }
+
+    .guidelines {
+      display: none;
+    }
+
+    @media print {
+      body, html {
+        height: auto;
+        margin: 0;
+        padding: 0;
+      }
+
+      .page-container {
+        width: 8.3in;
+        height: 5.8in;
+        border: none;
+        box-shadow: none;
+        transform: none;
+        margin: 0;
+        page-break-after: avoid;
+      }
+
+      .margin-indicator {
+        display: none;
+      }
+
+      .no-print {
+        display: none;
+      }
+
+      .output {
+        padding: 1in 0.5in 0.5in 0.5in;
+      }
+
+      .trace-wrapper {
+        page-break-inside: avoid;
+      }
+
+      .trace-line {
+        font-size: 70px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="no-print">
+    <div class="all-controls">
+      <div class="control-group">
+        <label for="name">Enter Name:</label>
+        <input type="text" id="name" placeholder="Type a name..." value="Cherry Ann Silvestre" />
+      </div>
+
+      <div class="control-group">
+        <label for="repetitions">Repetitions:</label>
+        <input
+          type="number"
+          id="repetitions"
+          min="1"
+          max="10"
+          value="5"
+        />
+      </div>
+
+      <div class="control-group">
+        <label for="lineSpacing">Spacing (px):</label>
+        <input
+          type="number"
+          id="lineSpacing"
+          min="0"
+          max="50"
+          value="11"
+        />
+      </div>
+      
+      <div class="control-group">
+        <label for="fontSize">Font Size (px):</label>
+        <input
+          type="number"
+          id="fontSize"
+          min="20"
+          max="120"
+          value="70"
+        />
+      </div>
+
+      <div class="control-group">
+        <label for="fontUpload">Upload Font:</label>
+        <input type="file" id="fontUpload" accept=".ttf,.otf,.woff,.woff2" />
+      </div>
+
+      <div class="control-group">
+        <button onclick="window.print()">🖨️ Print</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="page-container">
+    <div class="margin-indicator"></div>
+    <div class="output" id="output"></div>
+  </div>
+
+  <script>
+    const nameInput = document.getElementById('name');
+    const repetitionsInput = document.getElementById('repetitions');
+    const lineSpacingInput = document.getElementById('lineSpacing');
+    const fontSizeInput = document.getElementById('fontSize');
+    const fontUpload = document.getElementById('fontUpload');
+    const output = document.getElementById('output');
+    
+    let customFontLoaded = false;
+
+    function handleFontUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const fontData = e.target.result;
+        const fontFace = new FontFace('TracingFont', `url(${fontData})`);
+        
+        fontFace.load().then(function(loadedFace) {
+          document.fonts.add(loadedFace);
+          customFontLoaded = true;
+          generateTracing();
+        }).catch(function(error) {
+          console.error('Font loading failed:', error);
+          alert('Failed to load font. Please try a different font file.');
+        });
+      };
+      
+      reader.readAsDataURL(file);
+    }
+
+    function generateTracing() {
+      const name = nameInput.value.trim();
+      const repetitions = parseInt(repetitionsInput.value);
+      const lineSpacing = parseInt(lineSpacingInput.value);
+      const fontSize = parseInt(fontSizeInput.value);
+
+      output.innerHTML = '';
+
+      if (name === '' || isNaN(repetitions) || repetitions <= 0) {
+        return;
+      }
+
+      for (let i = 0; i < repetitions; i++) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'trace-wrapper';
+        
+        // Apply spacing except for the last line
+        if (i < repetitions - 1) {
+          wrapper.style.marginBottom = `${lineSpacing}px`;
+        }
+
+        const line = document.createElement('div');
+        line.className = 'trace-line';
+        line.textContent = name;
+        line.style.fontSize = `${fontSize}px`;
+
+        // Adjust minimum height based on font size
+        wrapper.style.minHeight = `${Math.max(60, fontSize * 0.9)}px`;
+
+        wrapper.appendChild(line);
+        output.appendChild(wrapper);
+      }
+    }
+
+    [nameInput, repetitionsInput, lineSpacingInput, fontSizeInput].forEach(input =>
+      input.addEventListener('input', generateTracing)
+    );
+    
+    fontUpload.addEventListener('change', handleFontUpload);
+
+    // Calculate optimal spacing to fit content on one page
+    function adjustSpacing() {
+      const defaultSpacing = 11;
+      const nameLength = nameInput.value.trim().length;
+      const fontSize = parseInt(fontSizeInput.value);
+      
+      // Adjust spacing based on name length and font size to prevent overflow
+      if (nameLength > 15 || fontSize > 70) {
+        lineSpacingInput.value = Math.max(5, defaultSpacing - 3);
+      } else {
+        lineSpacingInput.value = defaultSpacing;
+      }
+      
+      generateTracing();
+    }
+
+    nameInput.addEventListener('input', adjustSpacing);
+    fontSizeInput.addEventListener('input', adjustSpacing);
+    generateTracing();
+  </script>
+</body>
+</html>
